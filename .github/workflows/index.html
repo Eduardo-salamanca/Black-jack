@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Neon Red Blackjack</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Orbitron', monospace, sans-serif;
+      background-color: #0a0a0a;
+      color: #ff073a;
+    }
+    .neon-text {
+      text-shadow: 0 0 5px #ff073a, 0 0 10px #ff073a, 0 0 20px #ff073a, 0 0 40px #ff073a, 0 0 80px #ff073a;
+    }
+    .neon-border {
+      border-color: #ff073a;
+      box-shadow: 0 0 5px #ff073a, 0 0 10px #ff073a, 0 0 20px #ff073a, 0 0 40px #ff073a;
+    }
+    button:focus {
+      outline: none;
+      box-shadow: 0 0 10px #ff073a, 0 0 20px #ff073a, 0 0 30px #ff073a;
+    }
+    .card {
+      width: 80px;
+      height: 120px;
+      border-radius: 12px;
+      background-color: #1a1a1a;
+      box-shadow: 0 0 5px #ff073a, inset 0 0 10px #ff073a;
+      color: #ff073a;
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px;
+      user-select: none;
+    }
+    .card.red { color: #ff073a; }
+    .card.black { color: #f0f0f0; }
+    .card .corner { font-size: 1.2rem; }
+    .card .center { font-size: 3rem; text-align: center; line-height: 1; }
+
+    /* Custom face-down card */
+    .card.hidden {
+      background: repeating-linear-gradient(
+        45deg,
+        #ff073a,
+        #ff073a 5px,
+        #0a0a0a 5px,
+        #0a0a0a 10px
+      );
+      box-shadow: 0 0 10px #ff073a;
+      color: transparent;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start py-8 px-4 sm:px-8">
+  <h1 class="neon-text text-5xl sm:text-6xl font-extrabold mb-8 select-none">NEON RED BLACKJACK</h1>
+
+  <div id="game-container" class="w-full max-w-4xl bg-[#0a0a0a] neon-border rounded-xl p-6 flex flex-col sm:flex-row gap-6">
+    <section id="dealer-section" class="flex-1 flex flex-col items-center border border-[#ff073a] rounded-lg p-4 neon-border">
+      <h2 class="neon-text text-2xl mb-4 select-none">Dealer's Hand</h2>
+      <div id="dealer-cards" class="flex gap-3 justify-center min-h-[130px]" aria-label="Dealer's cards"></div>
+      <p id="dealer-score" class="neon-text text-xl mt-4 select-none" aria-live="polite">Score: 0</p>
+    </section>
+
+    <section id="player-section" class="flex-1 flex flex-col items-center border border-[#ff073a] rounded-lg p-4 neon-border">
+      <h2 class="neon-text text-2xl mb-4 select-none">Your Hand</h2>
+      <div id="player-cards" class="flex gap-3 justify-center min-h-[130px]" aria-label="Player's cards"></div>
+      <p id="player-score" class="neon-text text-xl mt-4 select-none" aria-live="polite">Score: 0</p>
+    </section>
+  </div>
+
+  <div id="controls" class="mt-8 flex flex-wrap justify-center gap-6 max-w-4xl w-full">
+    <button id="btn-hit" class="neon-border border-2 px-6 py-3 rounded-lg text-xl font-bold hover:bg-[#ff073a] hover:text-black transition-colors" aria-label="Hit">Hit</button>
+    <button id="btn-stand" class="neon-border border-2 px-6 py-3 rounded-lg text-xl font-bold hover:bg-[#ff073a] hover:text-black transition-colors" aria-label="Stand">Stand</button>
+    <button id="btn-next" class="neon-border border-2 px-6 py-3 rounded-lg text-xl font-bold hover:bg-[#ff073a] hover:text-black transition-colors hidden" aria-label="Next Game">Next Game</button>
+  </div>
+
+  <div id="message" class="mt-8 text-center neon-text text-2xl min-h-[3rem] select-none" aria-live="polite"></div>
+  <div id="win-counter" class="mt-6 text-center neon-text text-xl select-none">Wins: 0</div>
+
+  <div class="mt-12 max-w-4xl w-full text-center text-[#ff073a] font-mono text-lg select-none">
+    <p>When you win 5 times, you get the secret code!</p>
+  </div>
+
+  <script>
+    (() => {
+      const suits = ['♠', '♥', '♦', '♣'];
+      const values = [
+        { name: 'A', val: 11 }, { name: '2', val: 2 }, { name: '3', val: 3 },
+        { name: '4', val: 4 }, { name: '5', val: 5 }, { name: '6', val: 6 },
+        { name: '7', val: 7 }, { name: '8', val: 8 }, { name: '9', val: 9 },
+        { name: '10', val: 10 }, { name: 'J', val: 10 }, { name: 'Q', val: 10 }, { name: 'K', val: 10 }
+      ];
+
+      const dealerCardsEl = document.getElementById('dealer-cards');
+      const playerCardsEl = document.getElementById('player-cards');
+      const dealerScoreEl = document.getElementById('dealer-score');
+      const playerScoreEl = document.getElementById('player-score');
+      const messageEl = document.getElementById('message');
+      const btnHit = document.getElementById('btn-hit');
+      const btnStand = document.getElementById('btn-stand');
+      const btnNext = document.getElementById('btn-next');
+      const winCounterEl = document.getElementById('win-counter');
+
+      let deck = [], dealerHand = [], playerHand = [], playerWins = 0, gameOver = false;
+
+      function createDeck() {
+        const d = [];
+        for (const suit of suits) {
+          for (const val of values) {
+            d.push({ suit, name: val.name, value: val.val, color: suit === '♥' || suit === '♦' ? 'red' : 'black' });
+          }
+        }
+        return d;
+      }
+
+      function shuffle(deck) {
+        for (let i = deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+      }
+
+      function calculateScore(hand) {
+        let score = 0, aces = 0;
+        for (const card of hand) {
+          score += card.value;
+          if (card.name === 'A') aces++;
+        }
+        while (score > 21 && aces > 0) {
+          score -= 10;
+          aces--;
+        }
+        return score;
+      }
+
+      function createCardElement(card) {
+        const cardEl = document.createElement('div');
+        cardEl.className = `card ${card.color === 'red' ? 'red' : 'black'}`;
+        cardEl.setAttribute('aria-label', `${card.name} of ${card.suit}`);
+        cardEl.innerHTML = `
+          <div class="corner">${card.name}${card.suit}</div>
+          <div class="center">${card.suit}</div>
+          <div class="corner rotate-180">${card.name}${card.suit}</div>
+        `;
+        return cardEl;
+      }
+
+      function createHiddenCardElement() {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card hidden';
+        cardEl.setAttribute('aria-label', 'Hidden card face down');
+        return cardEl;
+      }
+
+      function renderHands(showDealerFull = false) {
+        dealerCardsEl.innerHTML = '';
+        playerCardsEl.innerHTML = '';
+
+        if (showDealerFull) {
+          for (const card of dealerHand) dealerCardsEl.appendChild(createCardElement(card));
+          dealerScoreEl.textContent = `Score: ${calculateScore(dealerHand)}`;
+        } else {
+          if (dealerHand.length > 0) {
+            dealerCardsEl.appendChild(createCardElement(dealerHand[0]));
+            dealerCardsEl.appendChild(createHiddenCardElement());
+            dealerScoreEl.textContent = `Score: ${dealerHand[0].value}`;
+          } else {
+            dealerScoreEl.textContent = 'Score: 0';
+          }
+        }
+
+        for (const card of playerHand) playerCardsEl.appendChild(createCardElement(card));
+        playerScoreEl.textContent = `Score: ${calculateScore(playerHand)}`;
+      }
+
+      function checkInitialBlackjack() {
+        const playerScore = calculateScore(playerHand);
+        const dealerScore = calculateScore(dealerHand);
+        if (playerScore === 21 && dealerScore === 21) {
+          messageEl.textContent = "It's a push! Both have Blackjack.";
+          endRound(false); return true;
+        } else if (playerScore === 21) {
+          messageEl.textContent = 'Blackjack! You win!';
+          playerWins++; updateWinCounter(); endRound(true); return true;
+        } else if (dealerScore === 21) {
+          messageEl.textContent = 'Dealer has Blackjack! You lose.';
+          resetWins(); endRound(false); return true;
+        }
+        return false;
+      }
+
+      function updateWinCounter() {
+        winCounterEl.textContent = `Wins: ${playerWins}`;
+      }
+
+      function resetWins() {
+        playerWins = 0; updateWinCounter();
+      }
+
+      function endRound(playerWon) {
+        gameOver = true;
+        btnHit.disabled = true;
+        btnStand.disabled = true;
+        btnNext.classList.remove('hidden');
+        renderHands(true);
+        if (playerWon && playerWins >= 5) {
+          messageEl.innerHTML = `You won 5 times! Your secret code is: <span class="font-bold underline">QYJEXUH</span>`;
+        }
+      }
+
+      function resetGame() {
+        deck = createDeck(); shuffle(deck);
+        dealerHand = []; playerHand = [];
+        gameOver = false;
+        messageEl.textContent = '';
+        btnHit.disabled = false; btnStand.disabled = false;
+        btnNext.classList.add('hidden');
+        dealInitialCards();
+      }
+
+      function dealInitialCards() {
+        playerHand.push(deck.pop());
+        dealerHand.push(deck.pop());
+        playerHand.push(deck.pop());
+        dealerHand.push(deck.pop());
+        renderHands(false);
+        if (checkInitialBlackjack()) {
+          btnHit.disabled = true;
+          btnStand.disabled = true;
+          btnNext.classList.remove('hidden');
+        }
+      }
+
+      function playerHit() {
+        if (gameOver) return;
+        playerHand.push(deck.pop());
+        renderHands(false);
+        if (calculateScore(playerHand) > 21) {
+          messageEl.textContent = 'Bust! You lose.';
+          resetWins(); endRound(false);
+        }
+      }
+
+      function dealerPlay() {
+        renderHands(true);
+        let dealerScore = calculateScore(dealerHand);
+        while (dealerScore < 17) {
+          dealerHand.push(deck.pop());
+          dealerScore = calculateScore(dealerHand);
+          renderHands(true);
+        }
+        return dealerScore;
+      }
+
+      function playerStand() {
+        if (gameOver) return;
+        const dealerScore = dealerPlay();
+        const playerScore = calculateScore(playerHand);
+
+        if (dealerScore > 21) {
+          messageEl.textContent = 'Dealer busts! You win!';
+          playerWins++; updateWinCounter(); endRound(true);
+        } else if (dealerScore > playerScore) {
+          messageEl.textContent = 'Dealer wins!';
+          resetWins(); endRound(false);
+        } else if (dealerScore < playerScore) {
+          messageEl.textContent = 'You win!';
+          playerWins++; updateWinCounter(); endRound(true);
+        } else {
+          messageEl.textContent = "It's a push!";
+          endRound(false);
+        }
+      }
+
+      btnHit.addEventListener('click', playerHit);
+      btnStand.addEventListener('click', playerStand);
+      btnNext.addEventListener('click', () => resetGame());
+
+      resetGame();
+    })();
+  </script>
+</body>
+</html>
