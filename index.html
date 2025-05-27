@@ -43,8 +43,6 @@
     .card.black { color: #f0f0f0; }
     .card .corner { font-size: 1.2rem; }
     .card .center { font-size: 3rem; text-align: center; line-height: 1; }
-
-    /* Custom face-down card */
     .card.hidden {
       background: repeating-linear-gradient(
         45deg,
@@ -60,34 +58,28 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-start py-8 px-4 sm:px-8">
   <h1 class="neon-text text-5xl sm:text-6xl font-extrabold mb-8 select-none">NEON RED BLACKJACK</h1>
-
   <div id="game-container" class="w-full max-w-4xl bg-[#0a0a0a] neon-border rounded-xl p-6 flex flex-col sm:flex-row gap-6">
     <section id="dealer-section" class="flex-1 flex flex-col items-center border border-[#ff073a] rounded-lg p-4 neon-border">
       <h2 class="neon-text text-2xl mb-4 select-none">Dealer's Hand</h2>
       <div id="dealer-cards" class="flex gap-3 justify-center min-h-[130px]" aria-label="Dealer's cards"></div>
       <p id="dealer-score" class="neon-text text-xl mt-4 select-none" aria-live="polite">Score: 0</p>
     </section>
-
     <section id="player-section" class="flex-1 flex flex-col items-center border border-[#ff073a] rounded-lg p-4 neon-border">
       <h2 class="neon-text text-2xl mb-4 select-none">Your Hand</h2>
       <div id="player-cards" class="flex gap-3 justify-center min-h-[130px]" aria-label="Player's cards"></div>
       <p id="player-score" class="neon-text text-xl mt-4 select-none" aria-live="polite">Score: 0</p>
     </section>
   </div>
-
   <div id="controls" class="mt-8 flex flex-wrap justify-center gap-6 max-w-4xl w-full">
     <button id="btn-hit" class="neon-border border-2 px-6 py-3 rounded-lg text-xl font-bold hover:bg-[#ff073a] hover:text-black transition-colors" aria-label="Hit">Hit</button>
     <button id="btn-stand" class="neon-border border-2 px-6 py-3 rounded-lg text-xl font-bold hover:bg-[#ff073a] hover:text-black transition-colors" aria-label="Stand">Stand</button>
     <button id="btn-next" class="neon-border border-2 px-6 py-3 rounded-lg text-xl font-bold hover:bg-[#ff073a] hover:text-black transition-colors hidden" aria-label="Next Game">Next Game</button>
   </div>
-
   <div id="message" class="mt-8 text-center neon-text text-2xl min-h-[3rem] select-none" aria-live="polite"></div>
   <div id="win-counter" class="mt-6 text-center neon-text text-xl select-none">Wins: 0</div>
-
   <div class="mt-12 max-w-4xl w-full text-center text-[#ff073a] font-mono text-lg select-none">
     <p>WIN 5 TIME TO UNLOCK SECRET</p>
   </div>
-
   <script>
     (() => {
       const suits = ['♠', '♥', '♦', '♣'];
@@ -97,7 +89,6 @@
         { name: '7', val: 7 }, { name: '8', val: 8 }, { name: '9', val: 9 },
         { name: '10', val: 10 }, { name: 'J', val: 10 }, { name: 'Q', val: 10 }, { name: 'K', val: 10 }
       ];
-
       const dealerCardsEl = document.getElementById('dealer-cards');
       const playerCardsEl = document.getElementById('player-cards');
       const dealerScoreEl = document.getElementById('dealer-score');
@@ -143,7 +134,6 @@
       function createCardElement(card) {
         const cardEl = document.createElement('div');
         cardEl.className = `card ${card.color === 'red' ? 'red' : 'black'}`;
-        cardEl.setAttribute('aria-label', `${card.name} of ${card.suit}`);
         cardEl.innerHTML = `
           <div class="corner">${card.name}${card.suit}</div>
           <div class="center">${card.suit}</div>
@@ -155,45 +145,22 @@
       function createHiddenCardElement() {
         const cardEl = document.createElement('div');
         cardEl.className = 'card hidden';
-        cardEl.setAttribute('aria-label', 'Hidden card face down');
         return cardEl;
       }
 
       function renderHands(showDealerFull = false) {
         dealerCardsEl.innerHTML = '';
         playerCardsEl.innerHTML = '';
-
         if (showDealerFull) {
           for (const card of dealerHand) dealerCardsEl.appendChild(createCardElement(card));
           dealerScoreEl.textContent = `Score: ${calculateScore(dealerHand)}`;
         } else {
-          if (dealerHand.length > 0) {
-            dealerCardsEl.appendChild(createCardElement(dealerHand[0]));
-            dealerCardsEl.appendChild(createHiddenCardElement());
-            dealerScoreEl.textContent = `Score: ${dealerHand[0].value}`;
-          } else {
-            dealerScoreEl.textContent = 'Score: 0';
-          }
+          dealerCardsEl.appendChild(createCardElement(dealerHand[0]));
+          dealerCardsEl.appendChild(createHiddenCardElement());
+          dealerScoreEl.textContent = `Score: ${dealerHand[0].value}`;
         }
-
         for (const card of playerHand) playerCardsEl.appendChild(createCardElement(card));
         playerScoreEl.textContent = `Score: ${calculateScore(playerHand)}`;
-      }
-
-      function checkInitialBlackjack() {
-        const playerScore = calculateScore(playerHand);
-        const dealerScore = calculateScore(dealerHand);
-        if (playerScore === 21 && dealerScore === 21) {
-          messageEl.textContent = "It's a push! Both have Blackjack.";
-          endRound(false); return true;
-        } else if (playerScore === 21) {
-          messageEl.textContent = 'Blackjack! You win!';
-          playerWins++; updateWinCounter(); endRound(true); return true;
-        } else if (dealerScore === 21) {
-          messageEl.textContent = 'Dealer has Blackjack! You lose.';
-          resetWins(); endRound(false); return true;
-        }
-        return false;
       }
 
       function updateWinCounter() {
@@ -201,7 +168,8 @@
       }
 
       function resetWins() {
-        playerWins = 0; updateWinCounter();
+        playerWins = 0;
+        updateWinCounter();
       }
 
       function endRound(playerWon) {
@@ -216,26 +184,29 @@
       }
 
       function resetGame() {
-        deck = createDeck(); shuffle(deck);
-        dealerHand = []; playerHand = [];
+        deck = createDeck();
+        shuffle(deck);
+        dealerHand = [];
+        playerHand = [];
         gameOver = false;
         messageEl.textContent = '';
-        btnHit.disabled = false; btnStand.disabled = false;
+        btnHit.disabled = false;
+        btnStand.disabled = false;
         btnNext.classList.add('hidden');
         dealInitialCards();
       }
 
       function dealInitialCards() {
-        playerHand.push(deck.pop());
+        const strong = deck.filter(c => c.value === 10 || c.name === 'A');
+        if (strong.length && Math.random() < 0.4) {
+          playerHand.push({ ...strong[Math.floor(Math.random() * strong.length)] });
+        } else {
+          playerHand.push(deck.pop());
+        }
         dealerHand.push(deck.pop());
         playerHand.push(deck.pop());
         dealerHand.push(deck.pop());
         renderHands(false);
-        if (checkInitialBlackjack()) {
-          btnHit.disabled = true;
-          btnStand.disabled = true;
-          btnNext.classList.remove('hidden');
-        }
       }
 
       function playerHit() {
@@ -244,14 +215,20 @@
         renderHands(false);
         if (calculateScore(playerHand) > 21) {
           messageEl.textContent = 'Bust! You lose.';
-          resetWins(); endRound(false);
+          resetWins();
+          endRound(false);
         }
       }
 
       function dealerPlay() {
         renderHands(true);
         let dealerScore = calculateScore(dealerHand);
-        while (dealerScore < 17) {
+        while (dealerScore < 16) {
+          dealerHand.push(deck.pop());
+          dealerScore = calculateScore(dealerHand);
+          renderHands(true);
+        }
+        if (dealerScore >= 16 && dealerScore < 18 && Math.random() < 0.25) {
           dealerHand.push(deck.pop());
           dealerScore = calculateScore(dealerHand);
           renderHands(true);
@@ -263,16 +240,20 @@
         if (gameOver) return;
         const dealerScore = dealerPlay();
         const playerScore = calculateScore(playerHand);
-
         if (dealerScore > 21) {
           messageEl.textContent = 'Dealer busts! You win!';
-          playerWins++; updateWinCounter(); endRound(true);
+          playerWins++;
+          updateWinCounter();
+          endRound(true);
         } else if (dealerScore > playerScore) {
           messageEl.textContent = 'Dealer wins!';
-          resetWins(); endRound(false);
+          resetWins();
+          endRound(false);
         } else if (dealerScore < playerScore) {
           messageEl.textContent = 'You win!';
-          playerWins++; updateWinCounter(); endRound(true);
+          playerWins++;
+          updateWinCounter();
+          endRound(true);
         } else {
           messageEl.textContent = "It's a push!";
           endRound(false);
@@ -281,8 +262,7 @@
 
       btnHit.addEventListener('click', playerHit);
       btnStand.addEventListener('click', playerStand);
-      btnNext.addEventListener('click', () => resetGame());
-
+      btnNext.addEventListener('click', resetGame);
       resetGame();
     })();
   </script>
